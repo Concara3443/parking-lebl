@@ -105,6 +105,63 @@ class AuroraBridge:
             'aircraft':  parts[6].strip(),   # aircraft ICAO type
         }
 
+    def get_traffic_in_range(self) -> list[str]:
+        """Return list of callsigns currently in Aurora's radar range."""
+        resp = self._send('#TR')
+        if not resp or not resp.startswith('#TR'):
+            return []
+        # Response: #TR;CS1;CS2;CS3;...
+        parts = resp.split(';')[1:]
+        return [p.strip() for p in parts if p.strip()]
+
+    def get_traffic_position(self, callsign: str) -> dict | None:
+        """
+        Return position dict for a callsign, or None.
+
+        Traffic Position Record (fields 1-21 after CALLSIGN):
+          12 = assumed_station (parts[13])
+          14 = on_ground       (parts[15])  '1' = on ground
+          17 = current_gate    (parts[18])
+          21 = assigned_gate   (parts[22])
+        """
+        resp = self._send(f'#TRPOS;{callsign.upper()}')
+        if not resp or not resp.startswith('#TRPOS;'):
+            return None
+        parts = resp.split(';')
+        return {
+            'callsign':         parts[1].strip()  if len(parts) > 1  else '',
+            'assumed_station':  parts[13].strip() if len(parts) > 13 else '',
+            'on_ground':        parts[15].strip() if len(parts) > 15 else '',
+            'current_gate':     parts[18].strip() if len(parts) > 18 else '',
+            'assigned_gate':    parts[22].strip() if len(parts) > 22 else '',
+        }
+
+    def get_connected_callsign(self) -> str | None:
+        """Return the ATC callsign currently connected in Aurora."""
+        resp = self._send('#CONN')
+        if not resp:
+            return None
+        parts = resp.split(';')
+        return parts[1].strip() if len(parts) > 1 else None
+
+    def get_occupied_gates(self) -> dict[str, str]:
+        """
+        Query all traffic in range and return {gate: callsign} for aircraft
+        that are on the ground and have a gate (current or assigned).
+        Only returns non-empty gate values.
+        """
+        result: dict[str, str] = {}
+        callsigns = self.get_traffic_in_range()
+        for cs in callsigns:
+            pos = self.get_traffic_position(cs)
+            if not pos:
+                continue
+            # Take assigned_gate first, fall back to current_gate
+            gate = pos['assigned_gate'] or pos['current_gate']
+            if gate:
+                result[gate] = cs
+        return result
+
     def assign_gate(self, callsign: str, gate: str) -> tuple[bool, str]:
         """Send #LBGTE to label the traffic with the assigned gate.
         Returns (success, raw_response_or_reason)."""
