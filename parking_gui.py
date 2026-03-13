@@ -78,8 +78,9 @@ class ParkingApp(tk.Tk):
         super().__init__()
         self.title("LEBL Parking Assignment  ·  v2.1")
         self.configure(bg=C['bg3'])
-        self.minsize(1020, 700)
-        self.geometry('1120x760')
+
+        self.minsize(1020, 580)
+        self.state('zoomed')  # start maximized — works correctly on any DPI/scaling
 
         # Data
         self.airlines  = pf.load_json(pf.AIRLINES_JSON,  "airlines.json")
@@ -128,15 +129,19 @@ class ParkingApp(tk.Tk):
     def _build_ui(self):
         self._build_header()
         tk.Frame(self, bg=C['sep'], height=2).pack(fill=tk.X)
+
+        # Pack bottom elements FIRST so they always claim their space
+        # before the expanding body consumes the rest.
+        self._build_footer()
+        tk.Frame(self, bg=C['sep'], height=2).pack(side=tk.BOTTOM, fill=tk.X)
+        self._build_log()
+        tk.Frame(self, bg='#2a2a2a', height=1).pack(side=tk.BOTTOM, fill=tk.X)
+
         body = tk.Frame(self, bg=C['bg'])
         body.pack(fill=tk.BOTH, expand=True)
         self._build_left(body)
         tk.Frame(body, bg='#2a2a2a', width=1).pack(side=tk.LEFT, fill=tk.Y)
         self._build_right(body)
-        tk.Frame(self, bg='#2a2a2a', height=1).pack(fill=tk.X)
-        self._build_log()
-        tk.Frame(self, bg=C['sep'], height=2).pack(fill=tk.X)
-        self._build_footer()
 
     # Header
 
@@ -178,10 +183,11 @@ class ParkingApp(tk.Tk):
         left = tk.Frame(parent, bg=C['bg'], width=320)
         left.pack(side=tk.LEFT, fill=tk.Y)
         left.pack_propagate(False)
+        inner = self._make_scrollable(left, C['bg'])
 
         # Inputs
-        self._slabel(left, "Query  (1, 2 o 3 campos)")
-        inp = tk.Frame(left, bg=C['bg2'], padx=8, pady=6)
+        self._slabel(inner, "Query  (1, 2 o 3 campos)")
+        inp = tk.Frame(inner, bg=C['bg2'], padx=8, pady=6)
         inp.pack(fill=tk.X, padx=8, pady=(0, 2))
 
         self.v_callsign = tk.StringVar()
@@ -231,8 +237,8 @@ class ParkingApp(tk.Tk):
                          bg=C['bg2'], fg=C['fg_dim']).pack(side=tk.LEFT, padx=3)
 
         # Filters
-        self._slabel(left, "Filtros")
-        flt = tk.Frame(left, bg=C['bg2'], padx=8, pady=6)
+        self._slabel(inner, "Filtros")
+        flt = tk.Frame(inner, bg=C['bg2'], padx=8, pady=6)
         flt.pack(fill=tk.X, padx=8, pady=(0, 2))
 
         filter_rows = [
@@ -261,16 +267,16 @@ class ParkingApp(tk.Tk):
              bg='#2a1010', fg=C['red']).pack(side=tk.LEFT)
 
         # Strip card
-        self._slabel(left, "Current Strip")
-        sf = tk.Frame(left, bg=C['bg'], padx=8)
+        self._slabel(inner, "Current Strip")
+        sf = tk.Frame(inner, bg=C['bg'], padx=8)
         sf.pack(fill=tk.X)
         self.strip_frame = tk.Frame(sf, bg=C['strip_bg'], bd=1, relief=tk.SOLID)
         self.strip_frame.pack(fill=tk.X)
         self._strip_empty()
 
         # Occupied
-        self._slabel(left, "Stands ocupados")
-        of = tk.Frame(left, bg=C['bg'], padx=8)
+        self._slabel(inner, "Stands ocupados")
+        of = tk.Frame(inner, bg=C['bg'], padx=8)
         of.pack(fill=tk.X)
         self.occ_label = tk.Label(of, text="—", font=FONT_S, bg=C['bg2'],
                                   fg=C['orange'], anchor='nw', justify='left',
@@ -331,7 +337,6 @@ class ParkingApp(tk.Tk):
         self.tree.bind('<<TreeviewSelect>>', self._on_stand_select)
         self.tree.bind('<Double-1>', lambda e: self._assign_stand())
 
-        # Stand info box
         # Search bar
         sh = tk.Frame(right, bg=C['bg'])
         sh.pack(fill=tk.X, padx=8, pady=(0, 2))
@@ -410,8 +415,9 @@ class ParkingApp(tk.Tk):
     # Log
 
     def _build_log(self):
-        wrap = tk.Frame(self, bg=C['bg3'], height=120)
-        wrap.pack(fill=tk.X)
+        log_h = 90 if self.winfo_screenheight() < 800 else 120
+        wrap = tk.Frame(self, bg=C['bg3'], height=log_h)
+        wrap.pack(side=tk.BOTTOM, fill=tk.X)
         wrap.pack_propagate(False)
         tk.Label(wrap, text=" Log", font=FONT_S, bg=C['bg3'],
                  fg=C['fg_dim'], anchor='w').pack(fill=tk.X, padx=8, pady=(3, 0))
@@ -426,7 +432,7 @@ class ParkingApp(tk.Tk):
 
     def _build_footer(self):
         bar = tk.Frame(self, bg=C['hdr'], pady=7)
-        bar.pack(fill=tk.X)
+        bar.pack(side=tk.BOTTOM, fill=tk.X)
         self.conn_btn = _btn(bar, "CONNECT TO AURORA", self._connect_aurora)
         self.conn_btn.pack(side=tk.LEFT, padx=(10, 4))
         _btn(bar, "QUERY SELECTED  (F5)", self._query_aurora,
@@ -435,6 +441,46 @@ class ParkingApp(tk.Tk):
              bg='#1a2a3a').pack(side=tk.LEFT, padx=4)
         _btn(bar, "CLEAR ALL STANDS", self._clear_occupied,
              bg='#3d0a0a').pack(side=tk.LEFT, padx=4)
+
+    @staticmethod
+    def _make_scrollable(outer, bg):
+        """Wrap outer in a Canvas. Scrollbar appears only when content overflows."""
+        vsb = tk.Scrollbar(outer, orient='vertical')
+        canvas = tk.Canvas(outer, bg=bg, highlightthickness=0, bd=0,
+                           yscrollcommand=vsb.set)
+        vsb.configure(command=canvas.yview)
+        inner = tk.Frame(canvas, bg=bg)
+        win_id = canvas.create_window((0, 0), window=inner, anchor='nw')
+
+        def _update_scrollbar():
+            h_inner  = inner.winfo_reqheight()
+            h_canvas = canvas.winfo_height()
+            canvas.configure(scrollregion=(0, 0, inner.winfo_reqwidth(), h_inner))
+            # Only show scrollbar when canvas has a real size and content overflows
+            if h_canvas > 1 and h_inner > h_canvas:
+                if not vsb.winfo_ismapped():
+                    vsb.pack(side=tk.RIGHT, fill=tk.Y)
+            else:
+                if vsb.winfo_ismapped():
+                    vsb.pack_forget()
+
+        def _on_inner_configure(e):
+            # Defer so canvas already has its final height
+            canvas.after_idle(_update_scrollbar)
+
+        def _on_canvas_configure(e):
+            canvas.itemconfig(win_id, width=e.width)
+            canvas.after_idle(_update_scrollbar)
+
+        inner.bind('<Configure>', _on_inner_configure)
+        canvas.bind('<Configure>', _on_canvas_configure)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        def _wheel(e):
+            canvas.yview_scroll(int(-1 * e.delta / 120), 'units')
+        canvas.bind('<Enter>', lambda e: canvas.bind_all('<MouseWheel>', _wheel))
+        canvas.bind('<Leave>', lambda e: canvas.unbind_all('<MouseWheel>'))
+        return inner
 
     def _slabel(self, parent, text):
         tk.Label(parent, text=f"  {text}", font=FONT_S,
