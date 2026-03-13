@@ -80,7 +80,19 @@ class ParkingApp(tk.Tk):
         self.configure(bg=C['bg3'])
 
         self.minsize(1020, 580)
-        self.state('zoomed')  # start maximized — works correctly on any DPI/scaling
+        try:
+            # Start maximized where the window manager supports the 'zoomed' state
+            self.state('zoomed')
+        except tk.TclError:
+            # Fallbacks for platforms/window managers without 'zoomed' support
+            try:
+                # Some Tk builds expose zoom via a window attribute instead
+                self.attributes('-zoomed', True)
+            except tk.TclError:
+                # Last resort: approximate maximized using screen size
+                w = self.winfo_screenwidth()
+                h = self.winfo_screenheight()
+                self.geometry(f"{w}x{h}+0+0")
 
         # Data
         self.airlines  = pf.load_json(pf.AIRLINES_JSON,  "airlines.json")
