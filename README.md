@@ -7,9 +7,11 @@ Sistema de asignación de parkings para el aeropuerto de Barcelona El Prat (LEBL
 
 > **[Descargar última versión → Releases](../../releases/latest)**
 
-1. Ve a la sección **Releases** y descarga `LEBL Parking.exe`.
-2. Colócalo en cualquier carpeta. No requiere instalación ni Python.
-3. Doble clic para abrir.
+1. Ve a la sección **Releases** y descarga el archivo `.zip`.
+2. Extrae la carpeta `LEBL Parking/` donde quieras.
+3. Abre `LEBL Parking.exe` dentro de esa carpeta.
+
+> **Importante:** el `.exe` necesita estar junto al resto de archivos de la carpeta. No muevas solo el `.exe`.
 
 > Si Windows muestra una advertencia de SmartScreen, haz clic en **"Más información" → "Ejecutar de todas formas"**. El ejecutable no está firmado digitalmente.
 
@@ -35,6 +37,7 @@ La GUI permite asignar stands, consultar información, sincronizar con Aurora y 
 ![Panel izquierdo](assets/screenshots/left_panel.png)
 
 - **Query** — introduce 1, 2 o 3 campos (Callsign, Airline, Aircraft, Origin). Con solo Aircraft busca por envergadura; con Airline calcula terminal y dedicados automáticamente.
+- **Detección GA automática** — al escribir un callsign, la herramienta detecta si es una matrícula privada (EC-LBS, G-ABCD, N12345…) y activa el modo GA automáticamente, buscando en los stands de aviación general (01-57). El botón `GA` junto al campo Callsign muestra el país de matrícula detectado y permite forzarlo manualmente.
 - **Filtros** — Tipo (Todo / Gates / Remote), Schengen (Auto / SCH / No-SCH), Terminal (Auto / T1 / T2). Se combinan con la query.
 - **Current Strip** — tarjeta de vuelo con callsign, avión, terminal, zona Schengen y stand asignado.
 - **Stands ocupados** — lista de todos los stands bloqueados en la sesión actual.
@@ -196,15 +199,20 @@ python dev/scrape_incompatibilities.py   # inyecta excludes desde el PDF
 ## Archivos
 
 ```
-LEBL Parking.exe        ← ejecutable standalone (sin Python)
-LEBL Parking.pyw        ← lanzador .pyw (Python instalado)
-iniciar_gui.bat         ← lanzador .bat
-parking_gui.py          ← GUI principal
-parking_finder.py       ← motor de búsqueda + CLI
-aurora_bridge.py        ← conexión TCP con Aurora
+LEBL Parking/               ← carpeta de distribución (extraer completa)
+  LEBL Parking.exe          ← ejecutable principal
+  (resto de archivos internos de PyInstaller)
+
+LEBL Parking.pyw            ← lanzador directo con Python instalado
+iniciar_gui.bat             ← lanzador .bat
+parking_gui.py              ← GUI principal
+parking_finder.py           ← motor de búsqueda + CLI
+aurora_bridge.py            ← conexión TCP con Aurora
+callsign_analyzer.py        ← detector de matrículas privadas / GA
 data/
   airlines.json
   aircraft_wingspans.json
   parkings.json
-MANUAL.txt              ← documentación completa de uso
+  prefix_data.json          ← base de datos de prefijos de matrícula (180+ países)
+MANUAL.txt                  ← documentación completa de uso
 ```
