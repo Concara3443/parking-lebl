@@ -703,14 +703,57 @@ class ParkingApp(tk.Tk):
 
         # ── GA / Private mode ─────────────────────────────────────────────────
         if ga_mode:
-            pool = {
-                pid: d for pid, d in parkings.items()
-                if d.get('schengen') == 'ga'
-                and pid not in occupied
-                and (d.get('max_wingspan') or 0) >= (ws or 0)
-            }
-            lbl = f"GA {aircraft_type}" if aircraft_type else "GA Privado"
-            return pool, 'GA', lbl, False
+            ws_req   = ws or 0
+            lbl_base = f"GA {aircraft_type}" if aircraft_type else "GA Privado"
+
+            def _ga_pool(pred):
+                return {pid: d for pid, d in parkings.items()
+                        if pid not in occupied
+                        and (d.get('max_wingspan') or 0) >= ws_req
+                        and pred(pid, d)}
+
+            # 1. GA stands (01-57)
+            pool = _ga_pool(lambda p, d: d.get('schengen') == 'ga')
+            if pool:
+                return pool, 'GA', lbl_base, False
+
+            # 2. Maintenance (71-87)
+            pool = _ga_pool(lambda p, d: d.get('schengen') == 'maintenance')
+            if pool:
+                return pool, 'MTO', f"{lbl_base} → Mantenimiento", True
+
+            # 3. Cargo (141-165)
+            pool = _ga_pool(lambda p, d: d.get('schengen') == 'cargo')
+            if pool:
+                return pool, 'CARGO', f"{lbl_base} → Cargo", True
+
+            _is_commercial = lambda p, d: (
+                d.get('schengen') not in ('ga', 'maintenance', 'cargo')
+                and not (900 <= int(p) <= 999 if p.isdigit() else False)
+            )
+
+            # 4. T2 remote
+            pool = _ga_pool(lambda p, d: _is_commercial(p, d)
+                            and d.get('terminal') == 'T2' and d.get('remote'))
+            if pool:
+                return pool, 'T2', f"{lbl_base} → T2 Remote", True
+
+            # 5. T2 all
+            pool = _ga_pool(lambda p, d: _is_commercial(p, d)
+                            and d.get('terminal') == 'T2')
+            if pool:
+                return pool, 'T2', f"{lbl_base} → T2", True
+
+            # 6. T1 remote
+            pool = _ga_pool(lambda p, d: _is_commercial(p, d)
+                            and d.get('terminal') == 'T1' and d.get('remote'))
+            if pool:
+                return pool, 'T1', f"{lbl_base} → T1 Remote", True
+
+            # 7. T1 all
+            pool = _ga_pool(lambda p, d: _is_commercial(p, d)
+                            and d.get('terminal') == 'T1')
+            return pool, 'T1', f"{lbl_base} → T1", True
 
         def _is_special(pid):
             """Returns True for 9xx special-use stands (excluded from default results)."""
@@ -1268,12 +1311,14 @@ class ParkingApp(tk.Tk):
 
     def _export_assignments(self):
         import csv
-        path = os.path.join(BASE, f"assignments_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+        downloads = os.path.join(os.path.expanduser('~'), 'Downloads')
+        export_dir = downloads if os.path.isdir(downloads) else BASE
+        path = os.path.join(export_dir, f"assignments_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
         with open(path, 'w', newline='', encoding='utf-8') as f:
             w = csv.DictWriter(f, fieldnames=['time','cs','airline','aircraft','origin','stand','status'])
             w.writeheader()
             w.writerows(self.assignments)
-        self._log(f"Exportado: {os.path.basename(path)}", 'ok')
+        self._log(f"Exportado: {path}", 'ok')
 
     def _clear_assignments(self):
         self.assignments.clear()
@@ -1364,6 +1409,13 @@ class ParkingApp(tk.Tk):
 
 if __name__ == '__main__':
     try:
+        # Cerrar splash screen de PyInstaller (solo activo en el .exe)
+        try:
+            import pyi_splash
+            pyi_splash.close()
+        except ImportError:
+            pass
+
         app = ParkingApp()
         app.mainloop()
     except Exception as exc:
