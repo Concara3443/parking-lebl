@@ -490,8 +490,22 @@ class ParkingApp(tk.Tk):
 
         def _wheel(e):
             canvas.yview_scroll(int(-1 * e.delta / 120), 'units')
-        canvas.bind('<Enter>', lambda e: canvas.bind_all('<MouseWheel>', _wheel))
-        canvas.bind('<Leave>', lambda e: canvas.unbind_all('<MouseWheel>'))
+
+        wheel_bind_id = {'id': None}
+
+        def _bind_wheel(event):
+            if wheel_bind_id['id'] is None:
+                wheel_bind_id['id'] = canvas.bind_all('<MouseWheel>', _wheel, add='+')
+
+        def _unbind_wheel(event):
+            if wheel_bind_id['id'] is not None:
+                canvas.unbind_all('<MouseWheel>', wheel_bind_id['id'])
+                wheel_bind_id['id'] = None
+
+        for widget in (canvas, inner):
+            widget.bind('<Enter>', _bind_wheel)
+            widget.bind('<Leave>', _unbind_wheel)
+
         return inner
 
     def _slabel(self, parent, text):
