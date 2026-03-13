@@ -7,11 +7,10 @@ Sistema de asignación de parkings para el aeropuerto de Barcelona El Prat (LEBL
 
 > **[Descargar última versión → Releases](../../releases/latest)**
 
-1. Ve a la sección **Releases** y descarga el archivo `.zip`.
-2. Extrae la carpeta `LEBL Parking/` donde quieras.
-3. Abre `LEBL Parking.exe` dentro de esa carpeta.
+1. Ve a la sección **Releases** y descarga `LEBL Parking.exe`.
+2. Ponlo donde quieras y ábrelo directamente.
 
-> **Importante:** el `.exe` necesita estar junto al resto de archivos de la carpeta. No muevas solo el `.exe`.
+> La **primera vez** que se abre tarda ~20 segundos extrayendo los datos internos (aparece una pantalla de carga). Las siguientes aperturas son inmediatas.
 
 > Si Windows muestra una advertencia de SmartScreen, haz clic en **"Más información" → "Ejecutar de todas formas"**. El ejecutable no está firmado digitalmente.
 
@@ -109,10 +108,11 @@ Si asignas un nuevo stand a un callsign que ya tiene uno asignado:
 | Rango | Uso |
 |-------|-----|
 | 01–57 | GA — aviación general (excluidos de resultados normales) |
-| 71–87 | Mantenimiento (excluidos siempre) |
+| 71–87 | Mantenimiento — excluidos de resultados normales. Asignables manualmente via "Info stand". |
 | 91–96 | EJU/EZY/EZS dedicados (T2) |
 | 141–165 | Cargo |
 | 200, 202, 200R | IBE dedicados (T1) |
+| 260–268 | ANY dedicados (T1 Schengen) — ANY va aquí preferentemente; otras aerolíneas también pueden usarlos |
 | 900–999 | Uso especial — excluidos de resultados por defecto |
 
 ---
@@ -199,9 +199,7 @@ python dev/scrape_incompatibilities.py   # inyecta excludes desde el PDF
 ## Archivos
 
 ```
-LEBL Parking/               ← carpeta de distribución (extraer completa)
-  LEBL Parking.exe          ← ejecutable principal
-  (resto de archivos internos de PyInstaller)
+LEBL Parking.exe            ← ejecutable único (distribución)
 
 LEBL Parking.pyw            ← lanzador directo con Python instalado
 iniciar_gui.bat             ← lanzador .bat
