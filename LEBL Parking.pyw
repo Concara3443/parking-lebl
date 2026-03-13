@@ -1,5 +1,5 @@
-import runpy, os
-runpy.run_path(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'parking_gui.py'),
-    run_name='__main__'
-)
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from app.gui.app_window import ParkingApp
+app = ParkingApp()
+app.mainloop()
