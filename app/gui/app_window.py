@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import threading, datetime, json, sys, os
+from app.theme import C, FONT, FONT_S, FONT_L, FONT_X, _btn, SegGroup
 
 
 def _pick_airport(parent, available):
@@ -42,7 +43,7 @@ def _pick_airport(parent, available):
     dlg.wait_window()
     return result[0]
 
-from app.theme import C, FONT, FONT_S, FONT_L, FONT_X, _btn, SegGroup
+# theme imported above
 from app.aurora_bridge import AuroraBridge, callsign_to_airline
 import app.parking_finder as pf
 from app.callsign_analyzer import CallsignAnalyzer
