@@ -15,6 +15,12 @@ class AirportData:
         self.wingspans = pf.load_json(os.path.join(DATA_DIR, 'aircraft_wingspans.json'), 'aircraft_wingspans.json')
         self.parkings  = pf.load_json(os.path.join(base, 'parkings.json'),  'parkings.json')
         pf._build_dedicated(self.airlines); pf._build_suffix_map(self.wingspans)
+        # auto-fill max_wingspan from global db if not present in parkings.json
+        for stand in self.parkings.values():
+            if 'max_wingspan' not in stand:
+                ws = self.wingspans.get(stand.get('max_acft', ''))
+                if ws is not None:
+                    stand['max_wingspan'] = ws
 
     @staticmethod
     def available() -> list:
