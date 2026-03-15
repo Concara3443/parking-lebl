@@ -1,9 +1,16 @@
 # airport data container
-import os
+import os, sys
 
-_HERE        = os.path.dirname(os.path.abspath(__file__))
-AIRPORTS_DIR = os.path.join(_HERE, '..', '..', 'airports')
-DATA_DIR     = os.path.join(_HERE, '..', '..', 'data')
+def _resource(path):
+    # handle PyInstaller _MEIPASS temp folder
+    base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    # if we are in app/core, we need to go up twice to reach root
+    if not hasattr(sys, '_MEIPASS'):
+        base = os.path.join(base, '..', '..')
+    return os.path.join(base, path)
+
+AIRPORTS_DIR = _resource('airports')
+DATA_DIR     = _resource('data')
 
 class AirportData:
     # load/hold data for specific airport
@@ -19,6 +26,7 @@ class AirportData:
         for code in cargo_db:
             if not code.startswith('_') and code not in self.airlines:
                 self.airlines[code] = 'CARGO'
+        pf._reset_globals()
         pf._build_dedicated(self.airlines); pf._build_suffix_map(self.wingspans)
         # auto-fill max_wingspan from global db if not present in parkings.json
         for stand in self.parkings.values():

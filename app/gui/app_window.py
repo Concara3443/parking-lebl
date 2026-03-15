@@ -20,8 +20,20 @@ class ParkingApp(tk.Tk):
         self.minsize(1020, 700)
         self.geometry('1120x760')
 
+        # select airport
+        available = AirportData.available()
+        selected_icao = 'LEBL'
+        if len(available) > 1:
+            # show simple selection if more than one
+            from tkinter import simpledialog
+            choice = simpledialog.askstring("Select Airport", f"Available: {', '.join(available)}", initialvalue='LEBL')
+            if choice and choice.upper() in available:
+                selected_icao = choice.upper()
+        
         # load airport data
-        airport = AirportData('LEBL')
+        airport = AirportData(selected_icao)
+        pf.CURRENT_ICAO = selected_icao
+        self.airport_icao          = selected_icao
         self.airport_config        = airport.config
         self.terminals             = airport.config.get('terminals', ['T1'])
         self.dedicated_airline_map = airport.config.get('dedicated_airline_map', {})
