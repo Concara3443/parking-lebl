@@ -39,32 +39,44 @@ CURRENT_ICAO       = 'LEBL'
 
 SUFFIX_MAP = {}  # suffix -> icao
 
-SCHENGEN_LABELS = {
+_SCHENGEN_LABELS_BASE = {
     'schengen_only':     'Schengen',
     'non_schengen_only': 'Non-Sch.',
     'mixed':             'Mixed',
-    'ibe_dedicated':     'IBERIA',
-    'eju_ezy_ezs':       'EASYJET',
 }
+SCHENGEN_LABELS = dict(_SCHENGEN_LABELS_BASE)
 
 _STANDARD_SCHENGEN = frozenset({'schengen_only', 'non_schengen_only', 'mixed', 'ga', 'maintenance', 'cargo'})
 
 
 def _reset_globals():
-    global DEDICATED, DEDICATED_LABEL, DEDICATED_TERMINAL, SUFFIX_MAP
+    global DEDICATED, DEDICATED_LABEL, DEDICATED_TERMINAL, SUFFIX_MAP, SCHENGEN_LABELS
     DEDICATED.clear()
     DEDICATED_LABEL.clear()
     DEDICATED_TERMINAL.clear()
     SUFFIX_MAP.clear()
+    SCHENGEN_LABELS.clear()
+    SCHENGEN_LABELS.update(_SCHENGEN_LABELS_BASE)
 
 
-def _build_dedicated(airlines_data):
+def _build_dedicated(airlines_data, default_terminal=''):
     global DEDICATED, DEDICATED_LABEL, DEDICATED_TERMINAL
     for code, val in airlines_data.items():
         if isinstance(val, dict) and 'dedicated' in val:
             DEDICATED[code]          = set(val['dedicated'])
             DEDICATED_LABEL[code]    = val.get('label', f'{code} DEDICATED')
-            DEDICATED_TERMINAL[code] = val.get('terminal', 'T1')
+            DEDICATED_TERMINAL[code] = val.get('terminal', default_terminal)
+
+
+def _build_labels(airlines_data, dedicated_airline_map):
+    # populate SCHENGEN_LABELS with dedicated category display names
+    # uses the label defined in airlines.json as-is
+    for code, cat in dedicated_airline_map.items():
+        if cat in SCHENGEN_LABELS:
+            continue
+        val = airlines_data.get(code)
+        if isinstance(val, dict) and 'label' in val:
+            SCHENGEN_LABELS[cat] = val['label']
 
 
 def _build_suffix_map(wingspans_data):
@@ -122,11 +134,9 @@ def get_numeric_id(pid):
 
 
 def schengen_ok(data, schengen_flight):
-    stype  = data.get('schengen', 'mixed')
-    remote = data.get('remote', False)
-    if stype in ('ibe_dedicated', 'eju_ezy_ezs'):
-        if not remote and not schengen_flight:
-            return False
+    stype = data.get('schengen', 'mixed')
+    if stype not in _STANDARD_SCHENGEN:
+        # custom dedicated category — treated as mixed
         return True
     if schengen_flight:
         return stype != 'non_schengen_only'

@@ -26,8 +26,11 @@ class AirportData:
         for code in cargo_db:
             if not code.startswith('_') and code not in self.airlines:
                 self.airlines[code] = 'CARGO'
+        default_term = self.config.get('terminals', [''])[0]
         pf._reset_globals()
-        pf._build_dedicated(self.airlines); pf._build_suffix_map(self.wingspans)
+        pf._build_dedicated(self.airlines, default_term)
+        pf._build_labels(self.airlines, self.config.get('dedicated_airline_map', {}))
+        pf._build_suffix_map(self.wingspans)
         # auto-fill max_wingspan from global db if not present in parkings.json
         for stand in self.parkings.values():
             if 'max_wingspan' not in stand:
