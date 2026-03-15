@@ -3,6 +3,45 @@ import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import threading, datetime, json, sys, os
 
+
+def _pick_airport(parent, available):
+    """Modal dropdown to choose an airport. Returns selected ICAO."""
+    dlg = tk.Toplevel(parent)
+    dlg.title("Stand Manager")
+    dlg.configure(bg=C['bg3'])
+    dlg.resizable(False, False)
+    dlg.grab_set()
+    dlg.focus_set()
+
+    result = [available[0]]
+
+    tk.Label(dlg, text="Seleccionar aeropuerto", font=FONT_L,
+             bg=C['bg3'], fg=C['accent']).pack(padx=30, pady=(20, 10))
+
+    var = tk.StringVar(value=available[0])
+    cb = ttk.Combobox(dlg, textvariable=var, values=available,
+                      state='readonly', font=FONT, width=18,
+                      justify='center')
+    cb.pack(padx=30, pady=(0, 16))
+
+    def _ok():
+        result[0] = var.get()
+        dlg.destroy()
+
+    _btn(dlg, "ACEPTAR", _ok, bg=C['seg_on']).pack(pady=(0, 20))
+    dlg.bind('<Return>', lambda _: _ok())
+
+    # center over parent
+    parent.update_idletasks()
+    px, py = parent.winfo_x(), parent.winfo_y()
+    pw, ph = parent.winfo_width(), parent.winfo_height()
+    dlg.update_idletasks()
+    dw, dh = dlg.winfo_width(), dlg.winfo_height()
+    dlg.geometry(f"+{px + (pw - dw)//2}+{py + (ph - dh)//2}")
+
+    dlg.wait_window()
+    return result[0]
+
 from app.theme import C, FONT, FONT_S, FONT_L, FONT_X, _btn, SegGroup
 from app.aurora_bridge import AuroraBridge, callsign_to_airline
 import app.parking_finder as pf
@@ -24,10 +63,7 @@ class ParkingApp(tk.Tk):
         available = AirportData.available()
         selected_icao = available[0] if available else ''
         if len(available) > 1:
-            from tkinter import simpledialog
-            choice = simpledialog.askstring("Select Airport", f"Available: {', '.join(available)}", initialvalue=available[0])
-            if choice and choice.upper() in available:
-                selected_icao = choice.upper()
+            selected_icao = _pick_airport(self, available)
         
         # load airport data
         airport = AirportData(selected_icao)
