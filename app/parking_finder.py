@@ -4,7 +4,7 @@ import os
 import sys
 import re
 
-# force utf8 for box chars
+# Force UTF-8 output on Windows so box-drawing chars and colours work
 if sys.platform == 'win32' and sys.stdout is not None:
     sys.stdout.reconfigure(encoding='utf-8')
 
@@ -20,7 +20,7 @@ MG  = '\033[95m'
 WH  = '\033[97m'
 BL  = '\033[94m'
 
-# data paths
+# Data files
 BASE           = os.path.dirname(os.path.abspath(__file__))
 WINGSPANS_JSON = os.path.join(BASE, '..', 'data', 'aircraft_wingspans.json')
 
